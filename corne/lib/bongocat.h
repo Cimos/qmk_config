@@ -1,4 +1,4 @@
-/* Copyright 2020 Christopher Courtney, aka Drashna Jael're  (@drashna) <drashna@live.com>
+/* Copyright 2022 HorrorTroll <https://github.com/HorrorTroll>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,10 +16,4 @@
 
 #pragma once
 
-// #ifndef OLED_FONT_H
-// #    define OLED_FONT_H "keyboards/crkbd/lib/glcdfont.c"
-// #endif
-
-// #if !defined(OLED_TIMEOUT)
-// #    define OLED_TIMEOUT 30000
-// #endif
+void render_bongocat(void);
