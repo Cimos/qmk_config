@@ -1,0 +1,23 @@
+{
+    "name": "RP2040 Test Board",
+    "vendorId": "0x4653",
+    "productId": "0x0002",
+    "matrix": {
+        "rows": 2,
+        "cols": 1
+    },
+    "keycodes": [
+        "qmk_lighting"
+    ],
+    "menus": [
+        "qmk_rgb_matrix"
+    ],
+    "layouts": {
+        "keymap": [
+            [
+                "0,0",
+                "1,0"
+            ]
+        ]
+    }
+}
