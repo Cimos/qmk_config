@@ -5,7 +5,7 @@
     "url": "hhttps://github.com/Cimos/Mad_RP2040",
     "usb": {
       "device_version": "1.0.0",
-      "pid": "0x0002",
+      "pid": "0x0003",
       "vid": "0x4653"
     },
     "processor": "RP2040",
