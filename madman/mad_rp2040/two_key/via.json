@@ -1,0 +1,43 @@
+{
+    "name": "Mad_RP2040",
+    "vendorId": "0x4653",
+    "productId": "0x0002",
+    "lighting": {
+        "extends": "qmk_rgblight",
+        "keycodes": "qmk",
+        "underglowEffects": [
+            ["None", 0],
+            ["SOLID_COLOR", 1],
+            ["BREATHING", 1],
+            ["BAND_SPIRAL_VAL", 1],
+            ["CYCLE_ALL", 0],
+            ["CYCLE_LEFT_RIGHT", 0],
+            ["CYCLE_UP_DOWN", 0],
+            ["RAINBOW_MOVING_CHEVRON", 0],
+            ["CYCLE_OUT_IN", 0],
+            ["CYCLE_OUT_IN_DUAL", 0],
+            ["CYCLE_PINWHEEL", 0],
+            ["CYCLE_SPIRAL", 0],
+            ["DUAL_BEACON", 1],
+            ["RAINBOW_BEACON", 0],
+            ["JELLYBEAN_RAINDROPS", 10],
+            ["PIXEL_RAIN", 0],
+            ["TYPING_HEATMAP", 0],
+            ["DIGITAL_RAIN", 0],
+            ["REACTIVE_SIMPLE", 1],
+            ["REACTIVE_MULTIWIDE", 1],
+            ["REACTIVE_MULTINEXUS", 1],
+            ["SPLASH", 0],
+            ["SOLID_SPLASH", 1]
+          ]
+        },
+    "matrix": { "rows": 2, "cols": 1 },
+    "layouts": {
+        "keymap": [
+            [
+                "0,0",
+                "1,0"
+            ]
+        ]
+    }
+}

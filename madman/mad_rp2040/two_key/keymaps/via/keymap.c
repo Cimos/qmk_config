@@ -5,14 +5,15 @@
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
-/* 0
- *  |   1  |   2  |
- */
-
  [0] = LAYOUT(
   KC_1, KC_2
 )
 };
 
-
-// qmk compile -kb madman/mad_rp2040 -km default
+void keyboard_post_init_user(void) {
+    // Customise these values to desired behaviour
+    debug_enable=true;
+    debug_matrix=true;
+    debug_keyboard=true;
+    //debug_mouse=true;
+  }
