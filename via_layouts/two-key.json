@@ -1,0 +1,30 @@
+{
+  "name": "MadMan RP2040",
+  "vendorId": "0x4653",
+  "productId": "0x0002", 
+  "matrix": {
+    "rows": 2,
+    "cols": 1
+  },
+  "keycodes": [
+    "qmk_lighting"
+  ],
+  "menus": [
+    "qmk_rgb_matrix"
+  ],
+  "layouts": {
+    "keymap": [
+      [
+        {
+          "x": 2.5,
+          "c": "#aaaaaa"
+        },
+        "0,0",
+        {
+          "c": "#cccccc"
+        },
+        "1,0"
+      ]
+    ]
+  }
+}
