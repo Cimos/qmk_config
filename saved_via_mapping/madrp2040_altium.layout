@@ -1,0 +1,29 @@
+{
+  "name": "MadMan RP2040",
+  "vendorProductId": 1179844610,
+  "macros": [
+    "{KC_RSFT,KC_PAST}",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    ""
+  ],
+  "layers": [
+    ["MACRO(0)", "KC_PAST"],
+    ["KC_TRNS", "KC_TRNS"],
+    ["KC_TRNS", "KC_TRNS"],
+    ["KC_TRNS", "KC_TRNS"]
+  ],
+  "encoders": []
+}
