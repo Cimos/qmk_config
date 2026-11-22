@@ -1,0 +1,59 @@
+name: Build firmware
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # QMK master on 2026-11-18. Bump on purpose, after checking the changelog.
+  QMK_REF: 80973aa0b5413e9a5bbbf9293507f39e870f9aa3
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: ghcr.io/qmk/qmk_cli@sha256:b7d7fa8fb4432b569931de5ad59098cb788f440ed61a62c5126746b71aee0f4a
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - madman/corne:via
+          - madman/mad_rp2040/two_key:via
+          - madman/mad_rp2040/anything:via
+          - madman/mad_rp2040/anything_split:via
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: config
+          persist-credentials: false
+
+      - name: Fetch QMK
+        run: |
+          git init -q qmk_firmware
+          cd qmk_firmware
+          git remote add origin https://github.com/qmk/qmk_firmware.git
+          git fetch -q --depth 1 origin "$QMK_REF"
+          git checkout -q FETCH_HEAD
+          git submodule update -q --init --recursive --depth 1
+          cp -r ../config/madman keyboards/
+
+      - name: Compile
+        working-directory: qmk_firmware
+        run: |
+          kb="${TARGET%%:*}"; km="${TARGET##*:}"
+          qmk compile -e SKIP_VERSION=yes -kb "$kb" -km "$km"
+          mkdir -p ../out && cp *.uf2 ../out/
+        env:
+          TARGET: ${{ matrix.target }}
+
+      - name: Name artifact
+        id: name
+        run: echo "name=$(echo '${{ matrix.target }}' | tr '/:' '__')" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ steps.name.outputs.name }}
+          path: out/*.uf2

@@ -3,6 +3,10 @@
 #pragma once
 
 #define SPLIT_TRANSACTION_IDS_KB KEYBOARD_OLED_SYNC
+
+// Bootmagic on the right half uses its own top-outer key
+#define BOOTMAGIC_ROW_RIGHT 4
+#define BOOTMAGIC_COLUMN_RIGHT 0
 // #define SPLIT_USB_DETECT
 
 

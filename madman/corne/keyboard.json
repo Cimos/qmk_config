@@ -9,13 +9,17 @@
     "processor": "RP2040",
     "bootloader": "rp2040",
     "features": {
+        "bootmagic": true,
         "extrakey": true,
         "nkro": true,
         "oled": true,
         "rgblight": true,
-        "backlight": true,
+        "backlight": false,
         "rgb_matrix": true
 
+    },
+    "bootmagic": {
+        "matrix": [0, 0]
     },
     "diode_direction": "COL2ROW",
     "matrix_pins": {

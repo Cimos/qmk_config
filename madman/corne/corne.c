@@ -20,7 +20,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "split_util.h"
 #include "print.h"
 #include "transactions.h"
-// #include "lib/bongocat.h"
+#ifdef VIA_ENABLE
+#    include "raw_hid.h"
+#endif
+#include "lib/bongocat.h"
 #include "lib/spaceship.h"
 
 typedef union {
@@ -111,6 +114,30 @@ static bool once_per_second(void){
     return true;
 }
 
+static const char *layer_name(void) {
+    switch (get_highest_layer(layer_state)) {
+        case 0:  return PSTR("BASE");
+        case 1:  return PSTR("LOWR");
+        case 2:  return PSTR("RAIS");
+        case 3:  return PSTR("ADJ ");
+        default: return PSTR("????");
+    }
+}
+
+// USB half: bongo cat with WPM, layer and Caps Lock on the right
+static void render_status(void) {
+    led_t leds = host_keyboard_led_state();
+
+    render_bongocat();
+    oled_set_cursor(14, 0);
+    oled_write_P(PSTR("WPM:"), false);
+    oled_write(get_u8_str(get_current_wpm(), '0'), false);
+    oled_set_cursor(17, 1);
+    oled_write_P(layer_name(), false);
+    oled_set_cursor(17, 2);
+    oled_write_P(leds.caps_lock ? PSTR("CAPS") : PSTR("    "), false);
+}
+
 bool oled_task_kb(void) {
     if (!oled_task_user()) {
         return false;
@@ -128,25 +155,10 @@ bool oled_task_kb(void) {
             oled_on();
         }
 
-        if (!is_keyboard_master()) {
-            render_spaceship();
+        if (is_keyboard_master()) {
+            render_status();
         } else {
-#if 0
-
-            led_t led_usb_state = host_keyboard_led_state();
-
-            render_bongocat();
-            oled_set_cursor(14, 0); // sets cursor to (column, row) using charactar spacing (4 rows on 128x32 screen, anything more will overflow back to the top)
-            oled_write_P(PSTR("WPM:"), false);
-            oled_write(get_u8_str(get_current_wpm(), '0'), false); // writes wpm on top right corner of string
-            oled_set_cursor(17, 2);
-            oled_write_P(led_usb_state.caps_lock ? PSTR("CAPS") : PSTR("    "), false);
-            oled_set_cursor(17, 3);
-            oled_write_P(led_usb_state.scroll_lock ? PSTR("SCRL") : PSTR("    "), false);
-#else
             render_spaceship();
-
-#endif
         }
     } else {
         oled_clear();
@@ -170,3 +182,18 @@ bool rgb_matrix_indicators_kb(void) {
     }
     return true;
 }
+
+#ifdef VIA_ENABLE
+// Lets the PC put the keyboard into the RP2040 bootloader over raw HID,
+// so updates need no BOOT button. VIA command 0x0B (bootloader jump) is
+// unused by QMK; require "BL" after it so stray packets cannot trigger it.
+bool via_command_kb(uint8_t *data, uint8_t length) {
+    if (data[0] == 0x0B && data[1] == 'B' && data[2] == 'L') {
+        raw_hid_send(data, length);
+        wait_ms(50);
+        reset_keyboard();
+        return true;
+    }
+    return false;
+}
+#endif
