@@ -39,8 +39,8 @@ a backup afterwards (`tools/via.py restore <backup.json>`).
 ## Screens
 
 The half plugged into USB shows a PCB auto-router: nets route themselves between pads and
-vias with 45-degree corners, faster as you type, and the board is wiped when it is full.
-WPM, current layer and Caps Lock sit on the right. The other half shows the spaceship,
+vias with 45-degree corners across the whole screen, and the board is wiped when it is full.
+The other half shows the spaceship,
 which flies faster the faster you type. `lib/pcbroute.c` has no QMK dependencies, so it can
 be built and previewed on a PC.
 

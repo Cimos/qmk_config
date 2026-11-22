@@ -114,49 +114,24 @@ static bool once_per_second(void){
     return true;
 }
 
-static const char *layer_name(void) {
-    switch (get_highest_layer(layer_state)) {
-        case 0:  return PSTR("BASE");
-        case 1:  return PSTR("LOWR");
-        case 2:  return PSTR("RAIS");
-        case 3:  return PSTR("ADJ ");
-        default: return PSTR("????");
-    }
-}
-
-// PCB auto-router animation on the left 80px; it routes faster as you type.
-#define PCB_WIDTH 80
+// USB half: random PCB auto-router animation across the whole screen.
 #define PCB_TICK_MS 40
+#define PCB_STEPS   2
 
 static void render_pcb(void) {
     static bool     started = false;
     static uint32_t last    = 0;
 
     if (!started) {
-        pcb_init(PCB_WIDTH, timer_read32() ^ 0x9E3779B9);
+        pcb_init(128, timer_read32() ^ 0x9E3779B9);
         started = true;
     }
     if (timer_elapsed32(last) >= PCB_TICK_MS) {
-        last        = timer_read32();
-        uint8_t wpm = get_current_wpm();
-        pcb_tick(1 + (wpm > 150 ? 150 : wpm) / 10);
+        last = timer_read32();
+        pcb_tick(PCB_STEPS);
     }
     oled_set_cursor(0, 0);
     oled_write_raw((const char *)pcb_fb(), PCB_FB_SIZE);
-}
-
-// USB half: PCB animation with WPM, layer and Caps Lock on the right
-static void render_status(void) {
-    led_t leds = host_keyboard_led_state();
-
-    render_pcb();
-    oled_set_cursor(14, 0);
-    oled_write_P(PSTR("WPM:"), false);
-    oled_write(get_u8_str(get_current_wpm(), '0'), false);
-    oled_set_cursor(17, 1);
-    oled_write_P(layer_name(), false);
-    oled_set_cursor(17, 2);
-    oled_write_P(leds.caps_lock ? PSTR("CAPS") : PSTR("    "), false);
 }
 
 bool oled_task_kb(void) {
@@ -177,7 +152,7 @@ bool oled_task_kb(void) {
         }
 
         if (is_keyboard_master()) {
-            render_status();
+            render_pcb();
         } else {
             render_spaceship();
         }
