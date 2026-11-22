@@ -1,5 +1,4 @@
 SRC += lib/pcbroute.c
-SRC += lib/spaceship.c
 
 LTO_ENABLE 			= yes
 SWAP_HANDS_ENABLE 	= yes

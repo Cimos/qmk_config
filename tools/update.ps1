@@ -4,8 +4,9 @@
 # Each half: back up VIA, reboot into the bootloader, copy the UF2, restore and check.
 # A half that is already in boot mode is flashed and restored from the latest backup.
 param([Parameter(Mandatory)][string]$Uf2, [switch]$Both,
-      [string]$Python = "$PSScriptRoot\venv\Scripts\python.exe")
+      [string]$Python)
 $ErrorActionPreference = 'Stop'
+if (-not $Python) { $Python = Join-Path $PSScriptRoot 'venv\Scripts\python.exe' }  # PS 5.1 has no $PSScriptRoot in param defaults
 $via = "$PSScriptRoot\via.py"
 
 function Get-Drive { Get-Volume | Where-Object FileSystemLabel -eq 'RPI-RP2' | Select-Object -First 1 }

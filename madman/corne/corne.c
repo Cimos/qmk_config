@@ -24,7 +24,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #    include "raw_hid.h"
 #endif
 #include "lib/pcbroute.h"
-#include "lib/spaceship.h"
 
 typedef union {
     bool oled_enable;
@@ -114,7 +113,7 @@ static bool once_per_second(void){
     return true;
 }
 
-// USB half: random PCB auto-router animation across the whole screen.
+// Both halves: random PCB auto-router animation across the whole screen.
 #define PCB_TICK_MS 40
 #define PCB_STEPS   2
 
@@ -123,7 +122,8 @@ static void render_pcb(void) {
     static uint32_t last    = 0;
 
     if (!started) {
-        pcb_init(128, timer_read32() ^ 0x9E3779B9);
+        // Seed per half so the two screens route different boards
+        pcb_init(128, timer_read32() ^ (is_keyboard_left() ? 0x9E3779B9 : 0x85EBCA6B));
         started = true;
     }
     if (timer_elapsed32(last) >= PCB_TICK_MS) {
@@ -151,11 +151,7 @@ bool oled_task_kb(void) {
             oled_on();
         }
 
-        if (is_keyboard_master()) {
-            render_pcb();
-        } else {
-            render_spaceship();
-        }
+        render_pcb();
     } else {
         oled_clear();
     }
