@@ -1,4 +1,4 @@
-SRC += lib/bongocat.c
+SRC += lib/pcbroute.c
 SRC += lib/spaceship.c
 
 LTO_ENABLE 			= yes

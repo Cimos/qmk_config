@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef VIA_ENABLE
 #    include "raw_hid.h"
 #endif
-#include "lib/bongocat.h"
+#include "lib/pcbroute.h"
 #include "lib/spaceship.h"
 
 typedef union {
@@ -124,11 +124,32 @@ static const char *layer_name(void) {
     }
 }
 
-// USB half: bongo cat with WPM, layer and Caps Lock on the right
+// PCB auto-router animation on the left 80px; it routes faster as you type.
+#define PCB_WIDTH 80
+#define PCB_TICK_MS 40
+
+static void render_pcb(void) {
+    static bool     started = false;
+    static uint32_t last    = 0;
+
+    if (!started) {
+        pcb_init(PCB_WIDTH, timer_read32() ^ 0x9E3779B9);
+        started = true;
+    }
+    if (timer_elapsed32(last) >= PCB_TICK_MS) {
+        last        = timer_read32();
+        uint8_t wpm = get_current_wpm();
+        pcb_tick(1 + (wpm > 150 ? 150 : wpm) / 10);
+    }
+    oled_set_cursor(0, 0);
+    oled_write_raw((const char *)pcb_fb(), PCB_FB_SIZE);
+}
+
+// USB half: PCB animation with WPM, layer and Caps Lock on the right
 static void render_status(void) {
     led_t leds = host_keyboard_led_state();
 
-    render_bongocat();
+    render_pcb();
     oled_set_cursor(14, 0);
     oled_write_P(PSTR("WPM:"), false);
     oled_write(get_u8_str(get_current_wpm(), '0'), false);
@@ -197,3 +218,43 @@ bool via_command_kb(uint8_t *data, uint8_t length) {
     return false;
 }
 #endif
+
+// Layer colours: on any layer above BASE, keys that do something on that
+// layer light in the layer's colour and unused keys go dark. Brightness
+// follows the current RGB brightness. Underglow keeps its animation.
+static const hsv_t layer_colour[] = {
+    [1] = {HSV_BLUE},
+    [2] = {HSV_GREEN},
+    [3] = {HSV_RED},
+};
+
+bool rgb_matrix_indicators_advanced_kb(uint8_t led_min, uint8_t led_max) {
+    if (!rgb_matrix_indicators_advanced_user(led_min, led_max)) {
+        return false;
+    }
+
+    uint8_t layer = get_highest_layer(layer_state);
+    if (layer == 0 || layer >= ARRAY_SIZE(layer_colour)) {
+        return true;
+    }
+
+    hsv_t hsv = layer_colour[layer];
+    hsv.v     = rgb_matrix_get_val();
+    rgb_t rgb = hsv_to_rgb(hsv);
+
+    for (uint8_t row = 0; row < MATRIX_ROWS; row++) {
+        for (uint8_t col = 0; col < MATRIX_COLS; col++) {
+            uint8_t led = g_led_config.matrix_co[row][col];
+            if (led == NO_LED || led < led_min || led >= led_max) {
+                continue;
+            }
+            uint16_t kc = keymap_key_to_keycode(layer, (keypos_t){.row = row, .col = col});
+            if (kc > KC_TRANSPARENT) {
+                rgb_matrix_set_color(led, rgb.r, rgb.g, rgb.b);
+            } else {
+                rgb_matrix_set_color(led, 0, 0, 0);
+            }
+        }
+    }
+    return true;
+}
