@@ -1,6 +1,6 @@
 # VIA backup/restore and bootloader tool for the MadMan Corne.
 # Needs: pip install hidapi. Run on the PC the keyboard is plugged into.
-#   python via.py backup FILE | restore FILE | show | bootloader
+#   python via.py backup FILE | restore FILE | show | bootloader | effect N
 import sys, json, time, hid
 VID, PID = 0x4653, 0x0002
 def open_dev():
@@ -66,5 +66,9 @@ elif op == 'bootloader':
     try: cmd(h, [0x0B, ord('B'), ord('L')])
     except SystemExit: pass
     print("bootloader requested (firmware older than 2026-11 ignores this)")
+elif op == 'effect':
+    # Set the RGB matrix effect by mode number and save it (44 = PCB_TRACE)
+    cmd(h, [0x07, 3, 2, int(sys.argv[2])]); cmd(h, [0x09, 3])
+    print(f"effect set to {sys.argv[2]}")
 elif op == 'show':
     s = snapshot(h); print(f"protocol {s['protocol']:#x}, layers {s['layers']}, rgb {s['rgb_matrix']}")

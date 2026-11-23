@@ -62,6 +62,7 @@ typedef struct {
 } pcb_sync_t;
 
 static pcb_sync_t pcb_remote;
+static uint8_t    pcb_key_budget = 0;  // ticks earned by key presses (USB half)
 static bool       pcb_remote_valid = false;
 
 void pcb_sync(uint8_t in_buflen, const void* in_data, uint8_t out_buflen, void* out_data) {
@@ -132,6 +133,43 @@ static bool once_per_second(void){
     return true;
 }
 
+// Popup: when the layer or Caps Lock changes, both screens show it for a
+// second in an inverted box over the animation.
+#define POPUP_MS 1000
+
+static void render_popup(void) {
+    static uint8_t  last_layer = 0;
+    static bool     last_caps  = false;
+    static uint32_t shown_at   = 0;
+    static bool     showing    = false;
+    static const char *text    = NULL;
+
+    uint8_t layer = get_highest_layer(layer_state);
+    bool    caps  = host_keyboard_led_state().caps_lock;
+    if (layer != last_layer) {
+        static const char *const names[] = {" BASE ", " LOWER ", " RAISE ", " ADJUST "};
+        text    = layer < 4 ? names[layer] : " LAYER ";
+        showing = true;
+        shown_at = timer_read32();
+    } else if (caps != last_caps) {
+        text    = caps ? " CAPS ON " : " CAPS OFF ";
+        showing = true;
+        shown_at = timer_read32();
+    }
+    last_layer = layer;
+    last_caps  = caps;
+
+    if (showing && timer_elapsed32(shown_at) < POPUP_MS) {
+        uint8_t len = strlen(text);
+        oled_set_cursor((21 - len) / 2, 1);
+        oled_write(text, true);
+        oled_set_cursor((21 - len) / 2, 2);
+        for (uint8_t i = 0; i < len; i++) oled_write_char(' ', true);
+    } else {
+        showing = false;
+    }
+}
+
 // Both halves: one random PCB auto-router board 256px wide, split across the
 // two screens (left half shows x 0-127, right half x 128-255).
 #define PCB_WIDTH   256
@@ -153,8 +191,10 @@ static void render_pcb(void) {
             tick    = 0;
             started = true;
         }
-        if (timer_elapsed32(last) >= PCB_TICK_MS) {
+        // Routing only moves when you type; pauses, wipe and banner run on time
+        if (timer_elapsed32(last) >= PCB_TICK_MS && (!pcb_is_routing() || pcb_key_budget)) {
             last = timer_read32();
+            if (pcb_is_routing()) pcb_key_budget--;
             pcb_tick(PCB_STEPS);
             tick++;
             pcb_sync_t msg = {.seed = seed, .tick = tick};
@@ -179,6 +219,7 @@ static void render_pcb(void) {
         oled_set_cursor(0, page);
         oled_write_raw((const char *)pcb_page(page, x0), 128);
     }
+    render_popup();
 }
 
 bool oled_task_kb(void) {
@@ -208,8 +249,12 @@ bool oled_task_kb(void) {
 
 
 bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
-        return process_record_user(keycode, record);
+    // Type to route: each key press lays the next bit of trace
+    if (record->event.pressed && pcb_key_budget < 40) {
+        pcb_key_budget += 2;
     }
+    return process_record_user(keycode, record);
+}
 
 bool rgb_matrix_indicators_kb(void) {
     if (!rgb_matrix_indicators_user()) {
@@ -251,6 +296,13 @@ bool rgb_matrix_indicators_advanced_kb(uint8_t led_min, uint8_t led_max) {
         return false;
     }
 
+    // All LEDs flash white with the DRONE DADDY banner
+    if (pcb_banner_lit()) {
+        uint8_t v = rgb_matrix_get_val();
+        for (uint8_t i = led_min; i < led_max; i++) rgb_matrix_set_color(i, v, v, v);
+        return true;
+    }
+
     uint8_t layer = get_highest_layer(layer_state);
     if (layer == 0 || layer >= ARRAY_SIZE(layer_colour)) {
         return true;
@@ -276,3 +328,4 @@ bool rgb_matrix_indicators_advanced_kb(uint8_t led_min, uint8_t led_max) {
     }
     return true;
 }
+

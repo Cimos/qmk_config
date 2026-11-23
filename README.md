@@ -43,7 +43,15 @@ with 45-degree corners across the whole screen, and the board is wiped when it i
 The two screens show one 256px-wide board: the USB half sends its seed and tick count
 to the other half every frame, and because the router is deterministic both halves draw
 the same board, each showing its own half. After each wipe, DRONE (left) and DADDY (right)
-flash four times before the next board starts.
+flash four times before the next board starts, and every key LED flashes white with them.
+Traces only route while you type (each key press lays a few pixels); the pause, wipe and
+banner run on their own. Changing layer or Caps Lock shows a one-second popup.
+
+## RGB effect
+
+`rgb_matrix_kb.inc` adds PCB_TRACE (mode 44 in this build): a signal pulse with a white head
+and a fading tail snakes through the key rows across both halves, in the current colour.
+Set it with `tools/via.py effect 44`, or pick another effect in VIA.
 `lib/pcbroute.c` has no QMK dependencies, so it can be built and previewed on a PC.
 
 ## Layer colours

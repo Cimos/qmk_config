@@ -207,5 +207,9 @@ void pcb_tick(uint8_t steps) {
 }
 
 bool pcb_done(void) { return phase == DONE; }
+bool pcb_is_routing(void) { return phase == ROUTING; }
+bool pcb_banner_lit(void) {
+    return phase == BANNER && ((banner_t / BANNER_FLASH) % 2 == 0 || banner_t >= BANNER_FLASH * 8);
+}
 
 const uint8_t *pcb_page(uint8_t page, uint16_t x0) { return &fb[page * PCB_MAX_W + x0]; }

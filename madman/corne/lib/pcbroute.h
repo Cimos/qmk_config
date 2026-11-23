@@ -15,5 +15,9 @@ void           pcb_init(uint16_t width, uint32_t seed);
 void           pcb_tick(uint8_t steps);
 // True once the board has been routed full and wiped; start the next with pcb_init.
 bool           pcb_done(void);
+// True while a trace is being laid (as opposed to pausing, wiping or the banner).
+bool           pcb_is_routing(void);
+// True on ticks where the DRONE DADDY banner is lit.
+bool           pcb_banner_lit(void);
 // Start of the 128-byte run for page `page` beginning at column `x0`.
 const uint8_t *pcb_page(uint8_t page, uint16_t x0);
