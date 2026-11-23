@@ -10,13 +10,14 @@
 #define GIVE_UP 4  // failed plans in a row before the board is wiped
 
 static uint8_t  fb[PCB_FB_SIZE];
-static uint8_t  W = 80;
+static uint16_t W = 128;
 static uint32_t rng = 1;
 
-typedef enum { ROUTING, PAUSE, WIPE } phase_t;
+typedef enum { ROUTING, PAUSE, WIPE, DONE } phase_t;
 static phase_t phase;
-static int8_t  px[MAX_PTS], py[MAX_PTS];
-static uint8_t npts, seg, cx, cy, end_kind, pause_left, wipe_x, fails;
+static int16_t  px[MAX_PTS], py[MAX_PTS], cx, cy;
+static uint16_t wipe_x;
+static uint8_t  npts, seg, end_kind, pause_left, fails;
 
 static uint32_t rnd(void) {
     rng ^= rng << 13;
@@ -29,13 +30,13 @@ static int sgn(int v) { return (v > 0) - (v < 0); }
 static int iabs(int v) { return v < 0 ? -v : v; }
 
 static void pset(int x, int y, int on) {
-    if (x < 0 || y < 0 || x >= 128 || y >= H) return;
-    uint8_t *b = &fb[(y / 8) * 128 + x];
+    if (x < 0 || y < 0 || x >= W || y >= H) return;
+    uint8_t *b = &fb[(y / 8) * PCB_MAX_W + x];
     if (on) *b |= 1 << (y % 8); else *b &= ~(1 << (y % 8));
 }
 static int pget(int x, int y) {
     if (x < 0 || y < 0 || x >= W || y >= H) return 1;  // edges count as copper
-    return (fb[(y / 8) * 128 + x] >> (y % 8)) & 1;
+    return (fb[(y / 8) * PCB_MAX_W + x] >> (y % 8)) & 1;
 }
 static int area_clear(int x0, int y0, int x1, int y1) {
     for (int y = y0; y <= y1; y++)
@@ -103,9 +104,10 @@ static int plan_net(void) {
     return 0;
 }
 
-void pcb_init(uint8_t width, uint32_t seed) {
+void pcb_init(uint16_t width, uint32_t seed) {
     memset(fb, 0, sizeof fb);
-    W     = width;
+    W     = width > PCB_MAX_W ? PCB_MAX_W : width;
+    fails = 0;
     rng   = seed ? seed : 1;
     phase = plan_net() ? ROUTING : WIPE;
     wipe_x = 0;
@@ -149,11 +151,14 @@ void pcb_tick(uint8_t steps) {
             wipe_x += 2;
             if (wipe_x >= W) {
                 memset(fb, 0, sizeof fb);
-                wipe_x = 0;
-                phase = plan_net() ? ROUTING : WIPE;
+                phase = DONE;
             }
+            break;
+        case DONE:
             break;
     }
 }
 
-const uint8_t *pcb_fb(void) { return fb; }
+bool pcb_done(void) { return phase == DONE; }
+
+const uint8_t *pcb_page(uint8_t page, uint16_t x0) { return &fb[page * PCB_MAX_W + x0]; }

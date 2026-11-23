@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #pragma once
 
-#define SPLIT_TRANSACTION_IDS_KB KEYBOARD_OLED_SYNC
+#define SPLIT_TRANSACTION_IDS_KB KEYBOARD_OLED_SYNC, KEYBOARD_PCB_SYNC
 
 // Bootmagic on the right half uses its own top-outer key
 #define BOOTMAGIC_ROW_RIGHT 4

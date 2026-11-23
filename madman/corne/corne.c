@@ -53,9 +53,28 @@ void oled_sync(uint8_t in_buflen, const void* in_data, uint8_t out_buflen, void*
     memcpy(&g_mad_corne_oled_sync, in_data, sizeof(mad_corne_oled_sync_t));
 }
 
+// PCB animation sync: the USB half owns the board and sends its seed and
+// tick count every frame. The router is deterministic, so the other half
+// replays the same ticks and both screens show one 256px-wide board.
+typedef struct {
+    uint32_t seed;
+    uint32_t tick;
+} pcb_sync_t;
+
+static pcb_sync_t pcb_remote;
+static bool       pcb_remote_valid = false;
+
+void pcb_sync(uint8_t in_buflen, const void* in_data, uint8_t out_buflen, void* out_data) {
+    if (in_buflen == sizeof(pcb_sync_t)) {
+        memcpy(&pcb_remote, in_data, sizeof(pcb_sync_t));
+        pcb_remote_valid = true;
+    }
+}
+
 void keyboard_post_init_user(void) {
 
     transaction_register_rpc(KEYBOARD_OLED_SYNC, oled_sync);
+    transaction_register_rpc(KEYBOARD_PCB_SYNC, pcb_sync);
 
 
 #ifdef CONSOLE_ENABLE
@@ -113,25 +132,53 @@ static bool once_per_second(void){
     return true;
 }
 
-// Both halves: random PCB auto-router animation across the whole screen.
+// Both halves: one random PCB auto-router board 256px wide, split across the
+// two screens (left half shows x 0-127, right half x 128-255).
+#define PCB_WIDTH   256
 #define PCB_TICK_MS 40
 #define PCB_STEPS   2
+#define PCB_CATCHUP 64  // most ticks the other half replays per frame
 
 static void render_pcb(void) {
     static bool     started = false;
+    static uint32_t seed    = 0;
+    static uint32_t tick    = 0;
     static uint32_t last    = 0;
 
-    if (!started) {
-        // Seed per half so the two screens route different boards
-        pcb_init(128, timer_read32() ^ (is_keyboard_left() ? 0x9E3779B9 : 0x85EBCA6B));
-        started = true;
+    if (is_keyboard_master()) {
+        if (!started || pcb_done()) {
+            seed = (seed * 1664525u + 1013904223u) ^ timer_read32();
+            if (seed == 0) seed = 1;
+            pcb_init(PCB_WIDTH, seed);
+            tick    = 0;
+            started = true;
+        }
+        if (timer_elapsed32(last) >= PCB_TICK_MS) {
+            last = timer_read32();
+            pcb_tick(PCB_STEPS);
+            tick++;
+            pcb_sync_t msg = {.seed = seed, .tick = tick};
+            transaction_rpc_send(KEYBOARD_PCB_SYNC, sizeof(msg), &msg);
+        }
+    } else if (pcb_remote_valid) {
+        // New board, or we got ahead somehow: start over from the master's seed
+        if (!started || pcb_remote.seed != seed || pcb_remote.tick < tick) {
+            seed = pcb_remote.seed;
+            pcb_init(PCB_WIDTH, seed);
+            tick    = 0;
+            started = true;
+        }
+        for (uint8_t n = 0; tick < pcb_remote.tick && n < PCB_CATCHUP; n++) {
+            pcb_tick(PCB_STEPS);
+            tick++;
+        }
     }
-    if (timer_elapsed32(last) >= PCB_TICK_MS) {
-        last = timer_read32();
-        pcb_tick(PCB_STEPS);
+
+    uint16_t x0 = is_keyboard_left() ? 0 : 128;
+    for (uint8_t page = 0; page < PCB_PAGES; page++) {
+        oled_set_cursor(0, page);
+        oled_write_raw((const char *)pcb_page(page, x0), 128);
     }
-    oled_set_cursor(0, 0);
-    oled_write_raw((const char *)pcb_fb(), PCB_FB_SIZE);
 }
 
 bool oled_task_kb(void) {

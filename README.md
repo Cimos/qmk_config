@@ -40,7 +40,9 @@ a backup afterwards (`tools/via.py restore <backup.json>`).
 
 Both halves show a random PCB auto-router: nets route themselves between pads and vias
 with 45-degree corners across the whole screen, and the board is wiped when it is full.
-Each half is seeded differently, so the two screens show different boards.
+The two screens show one 256px-wide board: the USB half sends its seed and tick count
+to the other half every frame, and because the router is deterministic both halves draw
+the same board, each showing its own half.
 `lib/pcbroute.c` has no QMK dependencies, so it can be built and previewed on a PC.
 
 ## Layer colours
