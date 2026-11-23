@@ -173,7 +173,8 @@ static void render_popup(void) {
 // Both halves: one random PCB auto-router board 256px wide, split across the
 // two screens (left half shows x 0-127, right half x 128-255).
 #define PCB_WIDTH   256
-#define PCB_TICK_MS 40
+#define PCB_TICK_MS 40        // full speed, while typing
+#define PCB_IDLE_TICK_MS 200  // slow constant pace when idle
 #define PCB_STEPS   2
 #define PCB_CATCHUP 64  // most ticks the other half replays per frame
 
@@ -191,10 +192,15 @@ static void render_pcb(void) {
             tick    = 0;
             started = true;
         }
-        // Routing only moves when you type; pauses, wipe and banner run on time
-        if (timer_elapsed32(last) >= PCB_TICK_MS && (!pcb_is_routing() || pcb_key_budget)) {
+        // Routing creeps along slowly on its own and runs at full speed while
+        // there are key presses banked; pauses, wipe and banner run on time.
+        bool due = timer_elapsed32(last) >= PCB_TICK_MS;
+        if (due && pcb_is_routing() && !pcb_key_budget) {
+            due = timer_elapsed32(last) >= PCB_IDLE_TICK_MS;
+        }
+        if (due) {
             last = timer_read32();
-            if (pcb_is_routing()) pcb_key_budget--;
+            if (pcb_is_routing() && pcb_key_budget) pcb_key_budget--;
             pcb_tick(PCB_STEPS);
             tick++;
             pcb_sync_t msg = {.seed = seed, .tick = tick};

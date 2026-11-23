@@ -44,7 +44,8 @@ The two screens show one 256px-wide board: the USB half sends its seed and tick 
 to the other half every frame, and because the router is deterministic both halves draw
 the same board, each showing its own half. After each wipe, DRONE (left) and DADDY (right)
 flash four times before the next board starts, and every key LED flashes white with them.
-Traces only route while you type (each key press lays a few pixels); the pause, wipe and
+Traces route slowly on their own and speed up while you type (each key press banks two
+full-speed ticks); the pause, wipe and
 banner run on their own. Changing layer or Caps Lock shows a one-second popup.
 
 ## RGB effect
