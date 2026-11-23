@@ -13,11 +13,11 @@ static uint8_t  fb[PCB_FB_SIZE];
 static uint16_t W = 128;
 static uint32_t rng = 1;
 
-typedef enum { ROUTING, PAUSE, WIPE, DONE } phase_t;
+typedef enum { ROUTING, PAUSE, WIPE, BANNER, DONE } phase_t;
 static phase_t phase;
 static int16_t  px[MAX_PTS], py[MAX_PTS], cx, cy;
 static uint16_t wipe_x;
-static uint8_t  npts, seg, end_kind, pause_left, fails;
+static uint8_t  npts, seg, end_kind, pause_left, fails, banner_t;
 
 static uint32_t rnd(void) {
     rng ^= rng << 13;
@@ -104,6 +104,44 @@ static int plan_net(void) {
     return 0;
 }
 
+
+// "DRONE DADDY" banner shown after each wipe: DRONE on the left screen, DADDY
+// on the right. 5x7 glyphs (column bytes, bit 0 at the top) drawn 4x size.
+#define WIPE_STEP     8   // pixels the wipe moves per tick
+#define GLYPH_SCALE   4
+#define GLYPH_PITCH   24  // 5 columns x 4 + 4px gap
+#define BANNER_FLASH  6   // ticks per on/off half-cycle
+#define BANNER_TICKS  (BANNER_FLASH * 8 + 15)  // four flashes, then hold on
+
+static const uint8_t glyph_cols[][5] = {
+    ['A' - 'A'] = {0x7E, 0x11, 0x11, 0x11, 0x7E},
+    ['D' - 'A'] = {0x7F, 0x41, 0x41, 0x22, 0x1C},
+    ['E' - 'A'] = {0x7F, 0x49, 0x49, 0x49, 0x41},
+    ['N' - 'A'] = {0x7F, 0x04, 0x08, 0x10, 0x7F},
+    ['O' - 'A'] = {0x3E, 0x41, 0x41, 0x41, 0x3E},
+    ['R' - 'A'] = {0x7F, 0x09, 0x19, 0x29, 0x46},
+    ['Y' - 'A'] = {0x07, 0x08, 0x70, 0x08, 0x07},
+};
+
+static void draw_word(const char *word, int x) {
+    for (; *word; word++, x += GLYPH_PITCH) {
+        const uint8_t *g = glyph_cols[*word - 'A'];
+        for (int c = 0; c < 5; c++)
+            for (int r = 0; r < 7; r++)
+                if (g[c] >> r & 1)
+                    for (int j = 0; j < GLYPH_SCALE; j++)
+                        for (int i = 0; i < GLYPH_SCALE; i++)
+                            pset(x + c * GLYPH_SCALE + i, 2 + r * GLYPH_SCALE + j, 1);
+    }
+}
+
+static void draw_banner(void) {
+    int word_w = 5 * GLYPH_PITCH - (GLYPH_PITCH - 5 * GLYPH_SCALE);
+    int x      = (128 - word_w) / 2;
+    draw_word("DRONE", x);
+    draw_word("DADDY", 128 + x);
+}
+
 void pcb_init(uint16_t width, uint32_t seed) {
     memset(fb, 0, sizeof fb);
     W     = width > PCB_MAX_W ? PCB_MAX_W : width;
@@ -144,12 +182,21 @@ void pcb_tick(uint8_t steps) {
         case WIPE:  // a bright scan line sweeps across and clears the board
             if (pause_left) { pause_left--; break; }
             for (int y = 0; y < H; y++) {
-                pset(wipe_x, y, 0);
-                if (wipe_x + 1 < W) pset(wipe_x + 1, y, 0);
-                if (wipe_x + 2 < W) pset(wipe_x + 2, y, 1);
+                for (int i = 0; i < WIPE_STEP; i++) pset(wipe_x + i, y, 0);
+                pset(wipe_x + WIPE_STEP, y, 1);
+                pset(wipe_x + WIPE_STEP + 1, y, 1);
             }
-            wipe_x += 2;
+            wipe_x += WIPE_STEP;
             if (wipe_x >= W) {
+                memset(fb, 0, sizeof fb);
+                banner_t = 0;
+                phase    = W >= 256 ? BANNER : DONE;  // banner needs both screens
+            }
+            break;
+        case BANNER:
+            memset(fb, 0, sizeof fb);
+            if ((banner_t / BANNER_FLASH) % 2 == 0 || banner_t >= BANNER_FLASH * 8) draw_banner();
+            if (++banner_t >= BANNER_TICKS) {
                 memset(fb, 0, sizeof fb);
                 phase = DONE;
             }

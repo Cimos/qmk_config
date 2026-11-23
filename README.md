@@ -42,7 +42,8 @@ Both halves show a random PCB auto-router: nets route themselves between pads an
 with 45-degree corners across the whole screen, and the board is wiped when it is full.
 The two screens show one 256px-wide board: the USB half sends its seed and tick count
 to the other half every frame, and because the router is deterministic both halves draw
-the same board, each showing its own half.
+the same board, each showing its own half. After each wipe, DRONE (left) and DADDY (right)
+flash four times before the next board starts.
 `lib/pcbroute.c` has no QMK dependencies, so it can be built and previewed on a PC.
 
 ## Layer colours
